@@ -3,7 +3,7 @@ import { setTimeout } from "timers/promises";
 import loginService from './login.service'
 
 (async () => {
-
+//fff
     const browser = await loginService.createBrowser();
     const page = await loginService.createPage(browser);
     await setTimeout(5000);
