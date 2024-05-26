@@ -1,5 +1,6 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { Balance } from '../types/balance'
+import dataBaseService from './dataBase.proxy.service'
 class BalanceService {
 
     private getDate(): string {
@@ -21,10 +22,12 @@ class BalanceService {
             return element ? element.textContent : null;
         }, balanceSelector);
         const currentDate = this.getDate();
-        return {
+        const balance = {
             date: currentDate,
             amount: extractedData
         }
+        await dataBaseService.saveBalance(balance);
+        return balance;
     }
 }
 
