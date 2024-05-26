@@ -2,6 +2,8 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 import { setTimeout } from "timers/promises";
 import fs from 'fs';
 import { LastMovement } from '../types/lastMovement'
+import dataBaseService from './dataBase.proxy.service'
+
 class LastMovements {
 
     private async moveToMovementsMenu(page: Page): Promise<any> {
@@ -62,6 +64,7 @@ class LastMovements {
         const data = await this.getData(page);
         await setTimeout(5000);
         const parsedData = this.parseData(data);
+        await dataBaseService.saveLastMovements(parsedData);
         return parsedData;
     }
 }
