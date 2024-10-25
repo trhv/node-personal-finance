@@ -1,5 +1,9 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { setTimeout } from "timers/promises";
+import * as cheerio from 'cheerio';
+import dateHelper from './dateHelper.service';
+import { CraeditCard } from '../types/creditCard'
+import dataBaseService from './dataBase.proxy.service'
 
 
 class CreditCardService {
@@ -11,50 +15,103 @@ class CreditCardService {
     await page.click(buttonSelector);
   }
 
-
-  private async getElementById(page: Page, partialId: string): Promise<any> {
-    return await page.evaluate((partialId) => {
-      return Array.from(document.querySelectorAll('*')).filter(element =>
-        element.id.includes(partialId)
-      ).map(element => element.outerHTML);
-    }, partialId);
+  private async getPagecontent(page: Page): Promise<any> {
+    return await page.content();
   }
 
-  private async getData(page: Page): Promise<any> {
-    const tableSelector = '/html/body/rb-root/poalim-header-footer-layout/main/poalim-aside-layout/div/poalim-title-layout/poalim-accounts-transaction/poalim-account-transaction/div/ul[1]/li[1]/div/poalim-card-table/section[1]/div/table'; // Replace with the actual selector for the table
-    // await page.waitForSelector(tableSelector);
-    await setTimeout(1000);
+  private async getTablePartFromContent(inputString, startPart, endPart): Promise<string> {
+    // Find the index of the startPart
+    const startIndex = inputString.indexOf(startPart);
 
-    // Extract data from the table
-    const tableData = await page.evaluate((selector) => {
-      const table = document.querySelector('/html/body/rb-root/poalim-header-footer-layout/main/poalim-aside-layout/div/poalim-title-layout/poalim-accounts-transaction/poalim-account-transaction/div/ul[1]/li[1]/div/poalim-card-table/section[1]/div/table');
-      if (!table) {
-        console.log('not found')
-        return null;
-      }
+    // If startPart is not found, return an empty string
+    if (startIndex === -1) {
+      return '';
+    }
 
-      const rows: HTMLTableRowElement[] = Array.from(table.querySelectorAll('tr'));
-      return rows.map(row => {
-        const cells = Array.from(row.querySelectorAll('th, td'));
-        return cells.map(cell => cell.textContent);
+    // Slice the string to keep everything from startPart onwards
+    const slicedString = inputString.slice(startIndex);
+
+    // Find the index of the endPart
+    const endIndex = slicedString.indexOf(endPart);
+
+    // If endPart is found, slice the string to remove everything after it
+    if (endIndex !== -1) {
+      return slicedString.slice(0, endIndex);
+    }
+
+    // If endPart is not found, return the entire sliced string
+    return slicedString;
+  }
+
+  private async convertTableToJSON(htmlTable: string): Promise<any> {
+    const $ = cheerio.load(htmlTable);
+    const tableData: object[] = [];
+
+    // Get the header
+    const headers: string[] = [];
+    $('table thead th').each((index, element) => {
+      headers.push($(element).text().trim());
+    });
+
+    // Get the rows
+    $('table tbody tr').each((index, element) => {
+      const rowData: { [key: string]: string } = {};
+      $(element).find('td, th').each((i, cell) => {
+        rowData[headers[i]] = $(cell).text().trim();
       });
-    }, tableSelector);
+      tableData.push(rowData);
+    });
+
     return tableData;
   }
 
-//   private async getData1(page:Page):Promise<any>{
-// // Wait for the table element to appear using XPath
-// const [table] = await page.$('/html/body/rb-root/poalim-header-footer-layout/main/poalim-aside-layout/div/poalim-title-layout/poalim-accounts-transaction/poalim-account-transaction/div/ul[1]/li[1]/div/poalim-card-table/section[1]/div/table');
-//     return table;
-//   }
+  private getLastDayCreditCard(content: object[]): object[] {
+    const data: object[] = [];
+    content.forEach(transaction => {
+      const keys = Object.keys(transaction);
+      if (keys.length > 1) {
+        console.log(transaction[keys[0]]);
+        if (dateHelper.isLastDay(transaction[keys[0]])) {
+          data.push(transaction);
+        }
+      }
+    });
+    return data;
+  }
 
-  // public async scrap(page: Page): Promise<any> {
-  //   await this.moveToCreditCardMenu(page);
-  //   await setTimeout(5000);
-  //   const data = await this.getData1(page);
-  //   console.log(data[0])
-  //   await setTimeout(5000);
-  // }
+  private extractSubstring(input: string, startPart: string, delimiter: string) {
+    // Find the index of the startPart
+    const startIndex = input.indexOf(startPart);
+    // Slice the string to keep everything from startPart onwards
+    const slicedString = input.slice(startIndex);
+    const index = slicedString.indexOf(delimiter);
+
+    if (index !== -1) {
+      const sub = slicedString.slice(0, index);
+      return sub.slice(startPart.length);
+    }
+    // If the delimiter is not found, return the original string.
+    return slicedString;
+  }
+
+  public async scrap(page: Page): Promise<CraeditCard> {
+    await this.moveToCreditCardMenu(page);
+    await setTimeout(5000);
+    // Get the entire HTML content of the page
+    const pageContent = await this.getPagecontent(page);
+    const tableSection = await this.getTablePartFromContent(pageContent, '<table', '</table>');
+    const jsonTable = await this.convertTableToJSON(tableSection);
+    // const lastDayTransactions = this.getLastDayCreditCard(jsonTable);
+    const totalAmount = this.extractSubstring(pageContent, '<span class="number amount-font">', '</span>');
+    const totalAmountDate = this.extractSubstring(pageContent, 'date ng-star-inserted', '</div>').slice(20);;
+    const creditCard = {
+      amount: totalAmount,
+      date: totalAmountDate,
+      transactions: jsonTable
+    }
+    await dataBaseService.saveCreditCardMovements(creditCard);
+    return creditCard;
+  }
 }
 
 export = new CreditCardService();

@@ -1,8 +1,8 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { Page } from 'puppeteer';
 import { setTimeout } from "timers/promises";
-import fs from 'fs';
 import { LastMovement } from '../types/lastMovement'
 import dataBaseService from './dataBase.proxy.service'
+import dateHelper from './dateHelper.service'
 
 class LastMovements {
 
@@ -31,22 +31,6 @@ class LastMovements {
     return tableData;
   }
 
-  private isLastDayMovement(dateToCheck: string): boolean {
-    let checkDay = Number(dateToCheck.split('/')[0]);
-    let checkMonth = Number(dateToCheck.split('/')[1]);
-    let checkYear = Number(20 + dateToCheck.split('/')[2]);
-
-    const now = new Date();
-    // Create a date object for the previous day
-    const previousDay = new Date();
-    previousDay.setDate(now.getDate() - 1);
-    return (
-      checkYear === previousDay.getFullYear() &&
-      checkMonth === (previousDay.getMonth() + 1) &&
-      checkDay === previousDay.getDate()
-    );
-  }
-
   private parseData(movements: string[][]): LastMovement[] {
 
     let lastMovements: LastMovement[] = [];
@@ -60,7 +44,7 @@ class LastMovements {
         } catch (error) {
           console.log(movement)
         }
-        if (this.isLastDayMovement(movement[0].split(' ')[1])) {
+        if (dateHelper.isLastDay(movement[0].split(' ')[1])) {
           lastMovements.push({
             date: movement[0].split(' ')[1],
             action: movement[1],
