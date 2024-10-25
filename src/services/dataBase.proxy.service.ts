@@ -2,7 +2,7 @@ import { Balance } from "../types/balance";
 import { LastMovement } from "../types/lastMovement";
 import fs from 'fs';
 import path from 'path';
-
+import {CraeditCard}from '../types/creditCard'
 class DataBaseProxy {
 
   private getDate(): string {
@@ -39,9 +39,17 @@ class DataBaseProxy {
     }
   }
 
-  public async saveCreditCardMovements(creditCardMovements: any): Promise<any> {
-    var json = JSON.stringify(creditCardMovements);
-    // fs.writeFile(`/DS/CreditCardMovements/${this.getDate()}.json`, json, 'utf8', () => { });
+  public async saveCreditCardMovements(creditCard: CraeditCard): Promise<any> {
+    try {
+      var json = JSON.stringify(creditCard);
+      fs.writeFile(`DS/Creditcard/${this.getDate()}.json`, json, 'utf8', (err) => {
+        if (err) {
+          console.error(err)
+        }
+      });
+    } catch (error) {
+      console.error(error)
+    }
   }
 }
 

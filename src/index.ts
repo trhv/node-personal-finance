@@ -5,6 +5,7 @@ import lastMovementsService from './services/lastMovements.service';
 import balanceService from './services/balance.service'
 import creditCardService from './services/creditCard.service'
 import { Balance } from './types/balance';
+import {CraeditCard} from './types/creditCard'
 
 (async () => {
 
@@ -18,8 +19,8 @@ import { Balance } from './types/balance';
 
   // const lastMovements = await lastMovementsService.scrap(page);
 
-  // const creditCardMovements = await creditCardService.scrap(page);
-  await setTimeout(10000);
+  const creditCardMovements = await creditCardService.scrap(page);
+  // await setTimeout(10000);
 
   // await setTimeout(20000);
   // Close the browser
