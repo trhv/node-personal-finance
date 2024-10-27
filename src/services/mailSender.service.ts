@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 
 class MailProxy {
 
-  public async sendMail(): Promise<any> {
+  public async sendMail(content:string): Promise<any> {
 
     // Create a transporter
     const transporter = nodemailer.createTransport({
@@ -13,13 +13,17 @@ class MailProxy {
       },
     });
 
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString().split('T')[0];
+ 
     // Email options
     const mailOptions = {
       from: 'trhv.sh@gmail.com', // Sender's address
       to: 'trhv.sh@gmail.com', // Recipient's address
-      subject: 'Test Email from Node.js and TypeScript',
-      text: 'Hello, this is a test email sent from a Node.js application using TypeScript.',
-      html: '<p>Hello, this is a <strong>test email</strong> sent from a Node.js application using TypeScript.</p>',
+      subject: `מצב חשבון`,
+      // text: 'Hello, this is a test email sent from a Node.js application using TypeScript.',
+      // html: '<p>Hello, this is a <strong>test email</strong> sent from a Node.js application using TypeScript.</p>',
+      html: content,
     };
 
     // Send the email
