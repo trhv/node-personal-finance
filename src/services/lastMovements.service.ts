@@ -3,6 +3,9 @@ import { setTimeout } from "timers/promises";
 import { LastMovement } from '../types/lastMovement'
 import dataBaseService from './dataBase.proxy.service'
 import dateHelper from './dateHelper.service'
+import fs from 'fs';
+import * as cheerio from 'cheerio';
+
 
 class LastMovements {
 
@@ -59,14 +62,60 @@ class LastMovements {
     return lastMovements;
   }
 
-  public async scrap(page: Page): Promise<LastMovement[]> {
+  private async getTablePartFromContent(inputString, startPart, endPart): Promise<string> {
+    // Find the index of the startPart
+    const startIndex = inputString.indexOf(startPart);
+
+    // If startPart is not found, return an empty string
+    if (startIndex === -1) {
+      return '';
+    }
+
+    // Slice the string to keep everything from startPart onwards
+    const slicedString = inputString.slice(startIndex);
+
+    // Find the index of the endPart
+    const endIndex = slicedString.indexOf(endPart);
+
+    // If endPart is found, slice the string to remove everything after it
+    if (endIndex !== -1) {
+      return slicedString.slice(0, endIndex);
+    }
+
+    // If endPart is not found, return the entire sliced string
+    return slicedString;
+  }
+
+
+  private async getPagecontent(page: Page): Promise<any> {
+    return await page.content();
+  }
+
+  private async getRawData(page: Page): Promise<any> {
+    // Get the entire HTML content of the page
+    const pageContent = await this.getPagecontent(page);
+    try {
+      fs.writeFile(`t.text`, pageContent, 'utf8', (err) => {
+        if (err) {
+          console.error(err)
+        }
+      });
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  public async scrap(page: Page): Promise<any> {
     await this.moveToMovementsMenu(page);
     await setTimeout(5000);
     const data = await this.getData(page);
     await setTimeout(5000);
     const parsedData = this.parseData(data);
     await dataBaseService.saveLastMovements(parsedData);
-    return parsedData;
+    const pageContent = await this.getRawData(page);
+    const tableSection = await this.getTablePartFromContent(pageContent, '<table', '</table>');
+
+    return tableSection;
   }
 }
 
