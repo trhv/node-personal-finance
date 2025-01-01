@@ -99,7 +99,7 @@ class CreditCardService {
     await setTimeout(5000);
     // Get the entire HTML content of the page
     const pageContent = await this.getPagecontent(page);
-    const tableSection = await this.getTablePartFromContent(pageContent, '<table', '</table>');
+      const tableSection = await this.getTablePartFromContent(pageContent, '<table', '</table>');
     const jsonTable = await this.convertTableToJSON(tableSection);
     // const lastDayTransactions = this.getLastDayCreditCard(jsonTable);
     const totalAmount = this.extractSubstring(pageContent, '<span class="number amount-font">', '</span>');
